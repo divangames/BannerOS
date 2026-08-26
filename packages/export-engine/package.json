@@ -4,5 +4,5 @@
   "private": true,
   "type": "module",
   "scripts": {"typecheck": "tsc --noEmit", "test": "vitest run"},
-  "dependencies": {"@banneros/common": "workspace:*"}
+  "dependencies": {"@banneros/common": "workspace:*", "@banneros/profile-engine": "workspace:*"}
 }

@@ -39,6 +39,12 @@ class WorkspaceCreate(BaseModel):
     profile: str = Field(pattern="^(HASL|OUTMAX)$")
 
 
+class ExportPlanRequest(BaseModel):
+    profile: str = Field(pattern="^(HASL|OUTMAX)$")
+    concept: str = Field(min_length=1, max_length=500)
+    assets: list[str] = Field(min_length=1, max_length=20)
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "banneros-api"}
@@ -64,3 +70,23 @@ def create_workspace(payload: WorkspaceCreate) -> dict[str, str]:
     }
     workspaces.append(workspace)
     return workspace
+
+
+@app.post("/api/exports/plan")
+def create_export_plan(payload: ExportPlanRequest) -> dict:
+    profile = PROFILES[payload.profile]
+    return {
+        "profile": payload.profile,
+        "concept": payload.concept.strip(),
+        "assets": payload.assets,
+        "status": "planned",
+        "outputs": [
+            {
+                "fileName": f"{payload.profile.lower()}-{item['name']}.png",
+                "format": item["name"],
+                "width": item["width"],
+                "height": item["height"],
+            }
+            for item in profile["formats"]
+        ],
+    }
