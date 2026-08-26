@@ -33,6 +33,11 @@ pnpm dev:desktop
 
 На первом этапе команды запускают минимальные каркасы; реализация Export Engine добавляется в Sprint 1.
 
+## Два режима
+
+- Локальный режим: запустите `start-banneros.bat`, чтобы использовать API, загрузку файлов, PNG-рендер и ZIP-экспорт.
+- Demo Mode: откройте [GitHub Pages](https://divangames.github.io/BannerOS/) — интерфейс работает прямо в браузере без backend и VPN, а данные demo workspace сохраняются в localStorage.
+
 ## Статус
 
 Sprint 0 — Foundation.
