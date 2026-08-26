@@ -10,14 +10,14 @@ function App() {
   const [assets, setAssets] = React.useState("product.jpg");
   const [files, setFiles] = React.useState<File[]>([]);
   const [uploadedAssets, setUploadedAssets] = React.useState<string[]>([]);
-  const [message, setMessage] = React.useState("");
+  const [message, setMessage] = React.useState(isDemo ? "Demo Mode: backend не требуется" : "");
   const [plan, setPlan] = React.useState<Array<{fileName: string; width: number; height: number}>>([]);
   const [sourceSize, setSourceSize] = React.useState({ width: "1200", height: "900" });
   const [crop, setCrop] = React.useState<{x: number; y: number; width: number; height: number; scale: number} | null>(null);
   const [rendered, setRendered] = React.useState<Array<{fileName: string; url: string; width: number; height: number}>>([]);
   const [archiveUrl, setArchiveUrl] = React.useState("");
   const [workspaces, setWorkspaces] = React.useState<Array<{id: string; name: string; profile: string}>>([]);
-  React.useEffect(() => { if (isDemo) { setWorkspaces(JSON.parse(localStorage.getItem("banneros-workspaces") ?? "[]")); return; } fetch("http://127.0.0.1:8000/api/workspaces").then((response) => response.ok ? response.json() : []).then(setWorkspaces).catch(() => undefined); fetch("http://127.0.0.1:8000/api/exports").then((response) => response.ok ? response.json() : []).then((items: unknown[]) => { if (items.length > 0) setMessage(`Сохранённых экспортов: ${items.length}`); }).catch(() => undefined); }, [isDemo]);
+  React.useEffect(() => { if (isDemo) { setWorkspaces(JSON.parse(localStorage.getItem("banneros-workspaces") ?? "[]")); return; } fetch("http://127.0.0.1:8000/health").then((response) => { if (!response.ok) throw new Error(); setMessage("Local API подключён"); return fetch("http://127.0.0.1:8000/api/workspaces"); }).then((response) => response.ok ? response.json() : []).then(setWorkspaces).catch(() => setMessage("API не запущен. Запустите start-banneros.bat")); fetch("http://127.0.0.1:8000/api/exports").then((response) => response.ok ? response.json() : []).then((items: unknown[]) => { if (items.length > 0) setMessage(`Сохранённых экспортов: ${items.length}`); }).catch(() => undefined); }, [isDemo]);
   const createWorkspace = async () => {
     if (!name.trim()) { setMessage("Введите название workspace"); return; }
     if (isDemo) { const workspace = { id: crypto.randomUUID(), name: name.trim(), profile }; const next = [workspace, ...workspaces]; setWorkspaces(next); localStorage.setItem("banneros-workspaces", JSON.stringify(next)); setMessage(`Demo workspace «${workspace.name}» создан · профиль ${workspace.profile}`); setName(""); return; }
