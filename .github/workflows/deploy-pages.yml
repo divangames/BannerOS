@@ -33,6 +33,16 @@ jobs:
         run: pnpm install --no-frozen-lockfile
       - name: Build desktop web shell
         run: pnpm --dir apps/desktop build
+      - name: Typecheck desktop
+        run: pnpm --dir apps/desktop typecheck
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test API
+        run: |
+          python -m pip install -r apps/api/requirements.txt
+          python -m unittest discover -s tests -p "test_*.py"
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
