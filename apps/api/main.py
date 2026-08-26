@@ -184,6 +184,7 @@ def render_export(payload: ExportPlanRequest) -> dict:
         outputs.append({"fileName": file_name, "width": item["width"], "height": item["height"], "url": f"/files/{export_id}/{file_name}"})
     result = {"id": export_id, "profile": payload.profile, "concept": payload.concept.strip(), "status": "rendered", "createdAt": datetime.now(UTC).isoformat(), "outputs": outputs}
     export_history.insert(0, result)
+    del export_history[50:]
     EXPORT_INDEX.write_text(json.dumps(export_history, ensure_ascii=False, indent=2), encoding="utf-8")
     return result
 
