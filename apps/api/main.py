@@ -1,7 +1,8 @@
 from datetime import UTC, datetime
+from pathlib import Path
 from uuid import uuid4
 
-from fastapi import FastAPI
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -32,6 +33,8 @@ PROFILES = {
     },
 }
 workspaces: list[dict[str, str]] = []
+UPLOAD_ROOT = Path(__file__).resolve().parents[2] / ".banneros" / "uploads"
+MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 
 
 class WorkspaceCreate(BaseModel):
@@ -108,3 +111,18 @@ def preview_crop(payload: CropRequest) -> dict[str, int | float]:
         return {"x": round((payload.sourceWidth - width) / 2), "y": 0, "width": width, "height": payload.sourceHeight, "scale": payload.targetHeight / payload.sourceHeight}
     height = round(payload.sourceWidth / target_ratio)
     return {"x": 0, "y": round((payload.sourceHeight - height) / 2), "width": payload.sourceWidth, "height": height, "scale": payload.targetWidth / payload.sourceWidth}
+
+
+@app.post("/api/assets/upload", status_code=201)
+async def upload_asset(file: UploadFile = File(...)) -> dict[str, str | int]:
+    safe_name = Path(file.filename or "asset").name
+    if safe_name in {"", ".", ".."}:
+        safe_name = "asset"
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File exceeds the 20 MB limit")
+    asset_id = str(uuid4())
+    destination = UPLOAD_ROOT / f"{asset_id}-{safe_name}"
+    UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
+    destination.write_bytes(content)
+    return {"id": asset_id, "name": safe_name, "path": str(destination), "size": len(content), "mimeType": file.content_type or "application/octet-stream"}

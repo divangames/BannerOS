@@ -8,5 +8,6 @@ __pycache__/
 .env
 .env.*
 !.env.example
+.banneros/
 .DS_Store
 target/
