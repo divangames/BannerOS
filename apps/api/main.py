@@ -4,7 +4,7 @@ from pathlib import Path
 from uuid import uuid4
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -142,7 +142,7 @@ def preview_crop(payload: CropRequest) -> dict[str, int | float]:
 
 
 @app.post("/api/assets/upload", status_code=201)
-async def upload_asset(file: UploadFile = File(...)) -> dict[str, str | int]:
+async def upload_asset(file: UploadFile = File(...), workspace_id: str | None = Form(None)) -> dict[str, str | int]:
     safe_name = Path(file.filename or "asset").name
     if safe_name in {"", ".", ".."}:
         safe_name = "asset"
@@ -153,15 +153,22 @@ async def upload_asset(file: UploadFile = File(...)) -> dict[str, str | int]:
     if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File exceeds the 20 MB limit")
     asset_id = str(uuid4())
-    destination = UPLOAD_ROOT / f"{asset_id}-{safe_name}"
-    UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
+    if workspace_id:
+        if not any(item.get("id") == workspace_id for item in workspaces):
+            raise HTTPException(status_code=404, detail="Workspace not found")
+        asset_root = WORKSPACE_ROOT / workspace_id / "assets"
+    else:
+        asset_root = UPLOAD_ROOT
+    destination = asset_root / f"{asset_id}-{safe_name}"
+    asset_root.mkdir(parents=True, exist_ok=True)
     destination.write_bytes(content)
     return {"id": asset_id, "name": safe_name, "path": str(destination), "size": len(content), "mimeType": file.content_type or "application/octet-stream"}
 
 
 @app.post("/api/exports/render")
 def render_export(payload: ExportPlanRequest) -> dict:
-    candidates = [path for asset in payload.assets for path in UPLOAD_ROOT.glob(f"*-{Path(asset).name}")]
+    asset_roots = [UPLOAD_ROOT] + [WORKSPACE_ROOT / item["id"] / "assets" for item in workspaces]
+    candidates = [path for root in asset_roots for asset in payload.assets for path in root.glob(f"*-{Path(asset).name}")]
     if not candidates:
         raise HTTPException(status_code=400, detail="Upload at least one image before exporting")
     try:

@@ -17,10 +17,11 @@ function App() {
   const [rendered, setRendered] = React.useState<Array<{fileName: string; url: string; width: number; height: number}>>([]);
   const [archiveUrl, setArchiveUrl] = React.useState("");
   const [workspaces, setWorkspaces] = React.useState<Array<{id: string; name: string; profile: string}>>([]);
+  const [currentWorkspaceId, setCurrentWorkspaceId] = React.useState("");
   React.useEffect(() => { if (isDemo) { setWorkspaces(JSON.parse(localStorage.getItem("banneros-workspaces") ?? "[]")); return; } fetch("http://127.0.0.1:8000/health").then((response) => { if (!response.ok) throw new Error(); setMessage("Local API подключён"); return fetch("http://127.0.0.1:8000/api/workspaces"); }).then((response) => response.ok ? response.json() : []).then(setWorkspaces).catch(() => setMessage("API не запущен. Запустите start-banneros.bat")); fetch("http://127.0.0.1:8000/api/exports").then((response) => response.ok ? response.json() : []).then((items: unknown[]) => { if (items.length > 0) setMessage(`Сохранённых экспортов: ${items.length}`); }).catch(() => undefined); }, [isDemo]);
   const createWorkspace = async () => {
     if (!name.trim()) { setMessage("Введите название workspace"); return; }
-    if (isDemo) { const workspace = { id: crypto.randomUUID(), name: name.trim(), profile }; const next = [workspace, ...workspaces]; setWorkspaces(next); localStorage.setItem("banneros-workspaces", JSON.stringify(next)); setMessage(`Demo workspace «${workspace.name}» создан · профиль ${workspace.profile}`); setName(""); return; }
+    if (isDemo) { const workspace = { id: crypto.randomUUID(), name: name.trim(), profile }; const next = [workspace, ...workspaces]; setWorkspaces(next); setCurrentWorkspaceId(workspace.id); localStorage.setItem("banneros-workspaces", JSON.stringify(next)); setMessage(`Demo workspace «${workspace.name}» создан · профиль ${workspace.profile}`); setName(""); return; }
     try {
       const response = await fetch("http://127.0.0.1:8000/api/workspaces", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -29,6 +30,7 @@ function App() {
       if (!response.ok) throw new Error("API error");
       const workspace = await response.json();
       setWorkspaces((current) => [workspace, ...current]);
+      setCurrentWorkspaceId(workspace.id);
       setMessage(`Workspace «${workspace.name}» создан · профиль ${workspace.profile}`);
       setName("");
     } catch { setMessage("Не удалось подключиться к API. Запустите start-banneros.bat"); }
@@ -63,6 +65,7 @@ function App() {
       for (const file of files) {
         const form = new FormData();
         form.append("file", file);
+        if (currentWorkspaceId) form.append("workspace_id", currentWorkspaceId);
         const response = await fetch("http://127.0.0.1:8000/api/assets/upload", { method: "POST", body: form });
         if (!response.ok) throw new Error("Upload failed");
         names.push((await response.json()).name);
