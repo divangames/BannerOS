@@ -1,8 +1,10 @@
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
+from zipfile import ZIP_DEFLATED, ZipFile
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from fastapi.staticfiles import StaticFiles
@@ -158,3 +160,17 @@ def render_export(payload: ExportPlanRequest) -> dict:
         canvas.save(output_dir / file_name, "PNG")
         outputs.append({"fileName": file_name, "width": item["width"], "height": item["height"], "url": f"/files/{export_id}/{file_name}"})
     return {"id": export_id, "profile": payload.profile, "status": "rendered", "outputs": outputs}
+
+
+@app.get("/api/exports/{export_id}/download")
+def download_export(export_id: str) -> FileResponse:
+    if Path(export_id).name != export_id:
+        raise HTTPException(status_code=400, detail="Invalid export id")
+    output_dir = EXPORT_ROOT / export_id
+    if not output_dir.is_dir():
+        raise HTTPException(status_code=404, detail="Export not found")
+    archive = EXPORT_ROOT / f"{export_id}.zip"
+    with ZipFile(archive, "w", ZIP_DEFLATED) as bundle:
+        for image in output_dir.glob("*.png"):
+            bundle.write(image, image.name)
+    return FileResponse(archive, media_type="application/zip", filename=f"banneros-{export_id}.zip")
