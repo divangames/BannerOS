@@ -17,7 +17,7 @@ function App() {
   const [rendered, setRendered] = React.useState<Array<{fileName: string; url: string; width: number; height: number}>>([]);
   const [archiveUrl, setArchiveUrl] = React.useState("");
   const [workspaces, setWorkspaces] = React.useState<Array<{id: string; name: string; profile: string}>>([]);
-  React.useEffect(() => { if (isDemo) { setWorkspaces(JSON.parse(localStorage.getItem("banneros-workspaces") ?? "[]")); return; } fetch("http://127.0.0.1:8000/api/workspaces").then((response) => response.ok ? response.json() : []).then(setWorkspaces).catch(() => undefined); }, [isDemo]);
+  React.useEffect(() => { if (isDemo) { setWorkspaces(JSON.parse(localStorage.getItem("banneros-workspaces") ?? "[]")); return; } fetch("http://127.0.0.1:8000/api/workspaces").then((response) => response.ok ? response.json() : []).then(setWorkspaces).catch(() => undefined); fetch("http://127.0.0.1:8000/api/exports").then((response) => response.ok ? response.json() : []).then((items: unknown[]) => { if (items.length > 0) setMessage(`Сохранённых экспортов: ${items.length}`); }).catch(() => undefined); }, [isDemo]);
   const createWorkspace = async () => {
     if (!name.trim()) { setMessage("Введите название workspace"); return; }
     if (isDemo) { const workspace = { id: crypto.randomUUID(), name: name.trim(), profile }; const next = [workspace, ...workspaces]; setWorkspaces(next); localStorage.setItem("banneros-workspaces", JSON.stringify(next)); setMessage(`Demo workspace «${workspace.name}» создан · профиль ${workspace.profile}`); setName(""); return; }
