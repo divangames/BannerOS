@@ -5,6 +5,8 @@ from uuid import uuid4
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from fastapi.staticfiles import StaticFiles
+from PIL import Image, ImageDraw, ImageOps
 
 app = FastAPI(title="BannerOS API", version="0.1.0")
 app.add_middleware(
@@ -34,7 +36,11 @@ PROFILES = {
 }
 workspaces: list[dict[str, str]] = []
 UPLOAD_ROOT = Path(__file__).resolve().parents[2] / ".banneros" / "uploads"
+EXPORT_ROOT = Path(__file__).resolve().parents[2] / ".banneros" / "exports"
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
+
+EXPORT_ROOT.mkdir(parents=True, exist_ok=True)
+app.mount("/files", StaticFiles(directory=EXPORT_ROOT), name="files")
 
 
 class WorkspaceCreate(BaseModel):
@@ -126,3 +132,29 @@ async def upload_asset(file: UploadFile = File(...)) -> dict[str, str | int]:
     UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
     destination.write_bytes(content)
     return {"id": asset_id, "name": safe_name, "path": str(destination), "size": len(content), "mimeType": file.content_type or "application/octet-stream"}
+
+
+@app.post("/api/exports/render")
+def render_export(payload: ExportPlanRequest) -> dict:
+    candidates = [path for asset in payload.assets for path in UPLOAD_ROOT.glob(f"*-{Path(asset).name}")]
+    if not candidates:
+        raise HTTPException(status_code=400, detail="Upload at least one image before exporting")
+    try:
+        source = Image.open(candidates[-1]).convert("RGB")
+    except Exception as error:
+        raise HTTPException(status_code=400, detail="Uploaded asset is not a readable image") from error
+    export_id = str(uuid4())
+    output_dir = EXPORT_ROOT / export_id
+    output_dir.mkdir(parents=True, exist_ok=True)
+    outputs = []
+    for item in PROFILES[payload.profile]["formats"]:
+        canvas = Image.new("RGB", (item["width"], item["height"]), (20, 18, 16))
+        fitted = ImageOps.contain(source, (item["width"] - 80, item["height"] - 180))
+        canvas.paste(fitted, ((item["width"] - fitted.width) // 2, (item["height"] - fitted.height) // 2))
+        draw = ImageDraw.Draw(canvas)
+        draw.rectangle((0, item["height"] - 110, item["width"], item["height"]), fill=(10, 9, 8))
+        draw.text((32, item["height"] - 82), payload.concept.strip()[:120], fill=(255, 242, 224))
+        file_name = f"{payload.profile.lower()}-{item['name']}.png"
+        canvas.save(output_dir / file_name, "PNG")
+        outputs.append({"fileName": file_name, "width": item["width"], "height": item["height"], "url": f"/files/{export_id}/{file_name}"})
+    return {"id": export_id, "profile": payload.profile, "status": "rendered", "outputs": outputs}
