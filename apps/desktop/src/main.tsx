@@ -50,7 +50,7 @@ function App() {
     if (!concept.trim() || assetNames.length === 0) { setMessage("Добавьте идею и хотя бы один исходник"); return; }
     if (isDemo) { const formats = profile === "HASL" ? [{ name: "square", width: 1080, height: 1080 }, { name: "landscape", width: 1920, height: 1080 }, { name: "portrait", width: 1080, height: 1350 }] : [{ name: "wide", width: 1920, height: 720 }, { name: "standard", width: 1200, height: 628 }, { name: "vertical", width: 1080, height: 1920 }]; setPlan(formats.map((format) => ({ fileName: `${profile.toLowerCase()}-${format.name}.png`, ...format }))); setMessage(`Demo-план готов: ${formats.length} формата для ${profile}`); return; }
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/exports/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profile, concept, assets: assetNames }) });
+      const response = await fetch("http://127.0.0.1:8000/api/exports/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profile, concept, assets: assetNames, workspaceId: currentWorkspaceId || null }) });
       if (!response.ok) throw new Error("API error");
       const result = await response.json();
       setPlan(result.outputs);
@@ -79,7 +79,7 @@ function App() {
     const assetNames = uploadedAssets.length > 0 ? uploadedAssets : assets.split(",").map((asset) => asset.trim()).filter(Boolean);
     if (isDemo) { const outputs = plan.map((output) => { const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${output.width}" height="${output.height}"><rect width="100%" height="100%" fill="#181614"/><text x="50%" y="45%" fill="#ff9d4d" font-family="Arial" font-size="48" text-anchor="middle">BannerOS DEMO</text><text x="50%" y="55%" fill="#f4f1ea" font-family="Arial" font-size="30" text-anchor="middle">${concept.slice(0, 40)}</text></svg>`; return { ...output, url: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}` }; }); setRendered(outputs); setMessage(`Demo-экспорт готов: ${outputs.length} PNG preview`); return; }
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/exports/render", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profile, concept, assets: assetNames }) });
+      const response = await fetch("http://127.0.0.1:8000/api/exports/render", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profile, concept, assets: assetNames, workspaceId: currentWorkspaceId || null }) });
       if (!response.ok) throw new Error("Render failed");
       const result = await response.json();
       setRendered(result.outputs.map((output: {fileName: string; url: string; width: number; height: number}) => ({ ...output, url: `http://127.0.0.1:8000${output.url}` })));

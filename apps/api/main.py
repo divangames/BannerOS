@@ -67,6 +67,7 @@ class ExportPlanRequest(BaseModel):
     profile: str = Field(pattern="^(HASL|OUTMAX)$")
     concept: str = Field(min_length=1, max_length=500)
     assets: list[str] = Field(min_length=1, max_length=20)
+    workspaceId: str | None = None
 
 
 class CropRequest(BaseModel):
@@ -112,6 +113,8 @@ def create_workspace(payload: WorkspaceCreate) -> dict[str, str]:
 
 @app.post("/api/exports/plan")
 def create_export_plan(payload: ExportPlanRequest) -> dict:
+    if payload.workspaceId and not any(item.get("id") == payload.workspaceId for item in workspaces):
+        raise HTTPException(status_code=404, detail="Workspace not found")
     profile = PROFILES[payload.profile]
     return {
         "profile": payload.profile,
@@ -167,7 +170,9 @@ async def upload_asset(file: UploadFile = File(...), workspace_id: str | None = 
 
 @app.post("/api/exports/render")
 def render_export(payload: ExportPlanRequest) -> dict:
-    asset_roots = [UPLOAD_ROOT] + [WORKSPACE_ROOT / item["id"] / "assets" for item in workspaces]
+    if payload.workspaceId and not any(item.get("id") == payload.workspaceId for item in workspaces):
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    asset_roots = [UPLOAD_ROOT] if not payload.workspaceId else [WORKSPACE_ROOT / payload.workspaceId / "assets"]
     candidates = [path for root in asset_roots for asset in payload.assets for path in root.glob(f"*-{Path(asset).name}")]
     if not candidates:
         raise HTTPException(status_code=400, detail="Upload at least one image before exporting")
@@ -189,7 +194,7 @@ def render_export(payload: ExportPlanRequest) -> dict:
         file_name = f"{payload.profile.lower()}-{item['name']}.png"
         canvas.save(output_dir / file_name, "PNG")
         outputs.append({"fileName": file_name, "width": item["width"], "height": item["height"], "url": f"/files/{export_id}/{file_name}"})
-    result = {"id": export_id, "profile": payload.profile, "concept": payload.concept.strip(), "status": "rendered", "createdAt": datetime.now(UTC).isoformat(), "outputs": outputs}
+    result = {"id": export_id, "profile": payload.profile, "workspaceId": payload.workspaceId, "concept": payload.concept.strip(), "status": "rendered", "createdAt": datetime.now(UTC).isoformat(), "outputs": outputs}
     export_history.insert(0, result)
     del export_history[50:]
     EXPORT_INDEX.write_text(json.dumps(export_history, ensure_ascii=False, indent=2), encoding="utf-8")
