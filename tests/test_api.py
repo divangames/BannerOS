@@ -15,6 +15,10 @@ class BannerOSApiTests(unittest.TestCase):
         self.assertEqual((result["width"], result["height"]), (900, 900))
         self.assertEqual(result["x"], 150)
 
+    def test_profiles_are_available(self):
+        result = create_export_plan(ExportPlanRequest(profile="OUTMAX", concept="Outdoor", assets=["hero.webp"]))
+        self.assertEqual([item["format"] for item in result["outputs"]], ["wide", "standard", "vertical"])
+
 
 if __name__ == "__main__":
     unittest.main()

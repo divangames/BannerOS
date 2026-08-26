@@ -135,6 +135,9 @@ async def upload_asset(file: UploadFile = File(...)) -> dict[str, str | int]:
     safe_name = Path(file.filename or "asset").name
     if safe_name in {"", ".", ".."}:
         safe_name = "asset"
+    allowed_extensions = {".png", ".jpg", ".jpeg", ".webp"}
+    if (file.content_type or "").lower() not in {"image/png", "image/jpeg", "image/webp"} or Path(safe_name).suffix.lower() not in allowed_extensions:
+        raise HTTPException(status_code=415, detail="Only PNG, JPG and WEBP images are supported")
     content = await file.read(MAX_UPLOAD_BYTES + 1)
     if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File exceeds the 20 MB limit")
