@@ -22,6 +22,7 @@ textarea { display: block; width: 100%; min-height: 76px; box-sizing: border-box
 .card h2 { margin: 28px 0 12px; font-size: 16px; }
 .recent { max-width: 460px; margin: 28px 0; }
 .recent h2 { margin: 0 0 10px; font-size: 16px; }
+.workspace-select { margin: 0 0 10px; }
 .recent-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #302c27; color: #d5d0c8; }
 .recent-row small { color: #ffb875; }
 .asset-list { margin: 24px 0 6px; }
