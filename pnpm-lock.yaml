@@ -56,6 +56,12 @@ importers:
         specifier: workspace:*
         version: link:../common
 
+  packages/workspace-engine:
+    dependencies:
+      '@banneros/common':
+        specifier: workspace:*
+        version: link:../common
+
 packages:
 
   '@oxc-project/types@0.146.0':

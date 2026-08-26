@@ -11,3 +11,9 @@ export interface SourceAsset {
   path: string;
   mimeType: string;
 }
+
+export interface BannerFormat {
+  name: string;
+  width: number;
+  height: number;
+}
