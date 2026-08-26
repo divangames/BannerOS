@@ -1,0 +1,8 @@
+{
+  "name": "@banneros/export-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {"typecheck": "tsc --noEmit", "test": "vitest run"},
+  "dependencies": {"@banneros/common": "workspace:*"}
+}

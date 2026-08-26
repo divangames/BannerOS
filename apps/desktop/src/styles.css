@@ -1,0 +1,7 @@
+:root { font-family: Inter, system-ui, sans-serif; color: #f4f1ea; background: #11100f; }
+body { margin: 0; min-width: 320px; }
+main { max-width: 720px; margin: 18vh auto; padding: 32px; }
+.eyebrow { color: #ff9d4d; font-size: 12px; letter-spacing: .18em; }
+h1 { max-width: 620px; font-size: clamp(40px, 8vw, 78px); line-height: .98; margin: 24px 0; }
+.muted { color: #a8a39a; font-size: 18px; line-height: 1.5; }
+button { margin-top: 24px; padding: 14px 20px; border: 0; border-radius: 12px; background: #ff9d4d; color: #1b120b; font-weight: 700; cursor: pointer; }
