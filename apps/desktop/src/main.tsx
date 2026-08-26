@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./styles.css";
 
 function App() {
+  const isDemo = !["127.0.0.1", "localhost"].includes(window.location.hostname);
   const [name, setName] = React.useState("");
   const [profile, setProfile] = React.useState("HASL");
   const [concept, setConcept] = React.useState("");
@@ -16,9 +17,10 @@ function App() {
   const [rendered, setRendered] = React.useState<Array<{fileName: string; url: string; width: number; height: number}>>([]);
   const [archiveUrl, setArchiveUrl] = React.useState("");
   const [workspaces, setWorkspaces] = React.useState<Array<{id: string; name: string; profile: string}>>([]);
-  React.useEffect(() => { fetch("http://127.0.0.1:8000/api/workspaces").then((response) => response.ok ? response.json() : []).then(setWorkspaces).catch(() => undefined); }, []);
+  React.useEffect(() => { if (isDemo) { setWorkspaces(JSON.parse(localStorage.getItem("banneros-workspaces") ?? "[]")); return; } fetch("http://127.0.0.1:8000/api/workspaces").then((response) => response.ok ? response.json() : []).then(setWorkspaces).catch(() => undefined); }, [isDemo]);
   const createWorkspace = async () => {
     if (!name.trim()) { setMessage("Введите название workspace"); return; }
+    if (isDemo) { const workspace = { id: crypto.randomUUID(), name: name.trim(), profile }; const next = [workspace, ...workspaces]; setWorkspaces(next); localStorage.setItem("banneros-workspaces", JSON.stringify(next)); setMessage(`Demo workspace «${workspace.name}» создан · профиль ${workspace.profile}`); setName(""); return; }
     try {
       const response = await fetch("http://127.0.0.1:8000/api/workspaces", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -33,6 +35,7 @@ function App() {
   };
   const previewCrop = async () => {
     const format = plan[0] ?? (profile === "HASL" ? { width: 1080, height: 1080 } : { width: 1920, height: 720 });
+    if (isDemo) { const sourceWidth = Number(sourceSize.width); const sourceHeight = Number(sourceSize.height); const sourceRatio = sourceWidth / sourceHeight; const targetRatio = format.width / format.height; const crop = sourceRatio > targetRatio ? { x: Math.round((sourceWidth - sourceHeight * targetRatio) / 2), y: 0, width: Math.round(sourceHeight * targetRatio), height: sourceHeight, scale: format.height / sourceHeight } : { x: 0, y: Math.round((sourceHeight - sourceWidth / targetRatio) / 2), width: sourceWidth, height: Math.round(sourceWidth / targetRatio), scale: format.width / sourceWidth }; setCrop(crop); setMessage(`Demo Smart Crop рассчитан под ${format.width} × ${format.height}`); return; }
     try {
       const response = await fetch("http://127.0.0.1:8000/api/crop/preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sourceWidth: Number(sourceSize.width), sourceHeight: Number(sourceSize.height), targetWidth: format.width, targetHeight: format.height }) });
       if (!response.ok) throw new Error("API error");
@@ -43,6 +46,7 @@ function App() {
   const createPlan = async () => {
     const assetNames = uploadedAssets.length > 0 ? uploadedAssets : assets.split(",").map((asset) => asset.trim()).filter(Boolean);
     if (!concept.trim() || assetNames.length === 0) { setMessage("Добавьте идею и хотя бы один исходник"); return; }
+    if (isDemo) { const formats = profile === "HASL" ? [{ name: "square", width: 1080, height: 1080 }, { name: "landscape", width: 1920, height: 1080 }, { name: "portrait", width: 1080, height: 1350 }] : [{ name: "wide", width: 1920, height: 720 }, { name: "standard", width: 1200, height: 628 }, { name: "vertical", width: 1080, height: 1920 }]; setPlan(formats.map((format) => ({ fileName: `${profile.toLowerCase()}-${format.name}.png`, ...format }))); setMessage(`Demo-план готов: ${formats.length} формата для ${profile}`); return; }
     try {
       const response = await fetch("http://127.0.0.1:8000/api/exports/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profile, concept, assets: assetNames }) });
       if (!response.ok) throw new Error("API error");
@@ -53,6 +57,7 @@ function App() {
   };
   const uploadAssets = async () => {
     if (files.length === 0) { setMessage("Выберите хотя бы один файл"); return; }
+    if (isDemo) { const names = files.map((file) => file.name); setUploadedAssets(names); setAssets(names.join(", ")); setMessage(`Demo: выбрано файлов: ${names.length}`); return; }
     try {
       const names: string[] = [];
       for (const file of files) {
@@ -69,6 +74,7 @@ function App() {
   };
   const renderExport = async () => {
     const assetNames = uploadedAssets.length > 0 ? uploadedAssets : assets.split(",").map((asset) => asset.trim()).filter(Boolean);
+    if (isDemo) { const outputs = plan.map((output) => { const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${output.width}" height="${output.height}"><rect width="100%" height="100%" fill="#181614"/><text x="50%" y="45%" fill="#ff9d4d" font-family="Arial" font-size="48" text-anchor="middle">BannerOS DEMO</text><text x="50%" y="55%" fill="#f4f1ea" font-family="Arial" font-size="30" text-anchor="middle">${concept.slice(0, 40)}</text></svg>`; return { ...output, url: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}` }; }); setRendered(outputs); setMessage(`Demo-экспорт готов: ${outputs.length} PNG preview`); return; }
     try {
       const response = await fetch("http://127.0.0.1:8000/api/exports/render", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profile, concept, assets: assetNames }) });
       if (!response.ok) throw new Error("Render failed");
