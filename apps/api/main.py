@@ -45,6 +45,13 @@ class ExportPlanRequest(BaseModel):
     assets: list[str] = Field(min_length=1, max_length=20)
 
 
+class CropRequest(BaseModel):
+    sourceWidth: int = Field(gt=0, le=10000)
+    sourceHeight: int = Field(gt=0, le=10000)
+    targetWidth: int = Field(gt=0, le=10000)
+    targetHeight: int = Field(gt=0, le=10000)
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "banneros-api"}
@@ -90,3 +97,14 @@ def create_export_plan(payload: ExportPlanRequest) -> dict:
             for item in profile["formats"]
         ],
     }
+
+
+@app.post("/api/crop/preview")
+def preview_crop(payload: CropRequest) -> dict[str, int | float]:
+    source_ratio = payload.sourceWidth / payload.sourceHeight
+    target_ratio = payload.targetWidth / payload.targetHeight
+    if source_ratio > target_ratio:
+        width = round(payload.sourceHeight * target_ratio)
+        return {"x": round((payload.sourceWidth - width) / 2), "y": 0, "width": width, "height": payload.sourceHeight, "scale": payload.targetHeight / payload.sourceHeight}
+    height = round(payload.sourceWidth / target_ratio)
+    return {"x": 0, "y": round((payload.sourceHeight - height) / 2), "width": payload.sourceWidth, "height": height, "scale": payload.targetWidth / payload.sourceWidth}

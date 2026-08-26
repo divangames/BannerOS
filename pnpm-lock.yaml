@@ -44,6 +44,8 @@ importers:
 
   packages/common: {}
 
+  packages/crop-engine: {}
+
   packages/export-engine:
     dependencies:
       '@banneros/common':
