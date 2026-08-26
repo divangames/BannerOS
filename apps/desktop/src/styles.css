@@ -24,4 +24,6 @@ textarea { display: block; width: 100%; min-height: 76px; box-sizing: border-box
 .recent h2 { margin: 0 0 10px; font-size: 16px; }
 .recent-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #302c27; color: #d5d0c8; }
 .recent-row small { color: #ffb875; }
+.asset-list { margin: 24px 0 6px; }
+.asset-list h2 { margin-top: 0; }
 .dimensions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
