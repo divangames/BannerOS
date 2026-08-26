@@ -55,14 +55,18 @@ if errorlevel 1 (
 )
 
 echo Starting BannerOS API...
-start "BannerOS API" /D "%ROOT%" "%PYTHON%" -m uvicorn apps.api.main:app --reload --port 8000
+start "BannerOS API" /D "%ROOT%" "%PYTHON%" -m uvicorn apps.api.main:app --reload --host 127.0.0.1 --port 8000
 
 echo Starting BannerOS Desktop...
-start "BannerOS Desktop" /D "%ROOT%" cmd /k node "%PNPM%" --dir apps/desktop dev
+start "BannerOS Desktop" /D "%ROOT%" cmd /k node "%PNPM%" --dir apps/desktop dev --host 127.0.0.1
+
+echo Waiting for the local browser app...
+timeout /t 3 /nobreak >nul
+start "" "http://127.0.0.1:5173/BannerOS/"
 
 echo.
 echo BannerOS services started.
 echo API:     http://127.0.0.1:8000/health
-echo Desktop: http://127.0.0.1:5173
+echo Desktop: http://127.0.0.1:5173/BannerOS/
 echo.
 pause
