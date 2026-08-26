@@ -40,6 +40,7 @@ PROFILES = {
 workspaces: list[dict[str, str]] = []
 UPLOAD_ROOT = Path(__file__).resolve().parents[2] / ".banneros" / "uploads"
 EXPORT_ROOT = Path(__file__).resolve().parents[2] / ".banneros" / "exports"
+EXPORT_INDEX = EXPORT_ROOT / "index.json"
 WORKSPACE_FILE = Path(__file__).resolve().parents[2] / ".banneros" / "workspaces.json"
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 
@@ -50,6 +51,10 @@ try:
     workspaces = json.loads(WORKSPACE_FILE.read_text(encoding="utf-8")) if WORKSPACE_FILE.exists() else []
 except (OSError, json.JSONDecodeError):
     workspaces = []
+try:
+    export_history = json.loads(EXPORT_INDEX.read_text(encoding="utf-8")) if EXPORT_INDEX.exists() else []
+except (OSError, json.JSONDecodeError):
+    export_history = []
 
 
 class WorkspaceCreate(BaseModel):
@@ -171,7 +176,15 @@ def render_export(payload: ExportPlanRequest) -> dict:
         file_name = f"{payload.profile.lower()}-{item['name']}.png"
         canvas.save(output_dir / file_name, "PNG")
         outputs.append({"fileName": file_name, "width": item["width"], "height": item["height"], "url": f"/files/{export_id}/{file_name}"})
-    return {"id": export_id, "profile": payload.profile, "status": "rendered", "outputs": outputs}
+    result = {"id": export_id, "profile": payload.profile, "concept": payload.concept.strip(), "status": "rendered", "createdAt": datetime.now(UTC).isoformat(), "outputs": outputs}
+    export_history.insert(0, result)
+    EXPORT_INDEX.write_text(json.dumps(export_history, ensure_ascii=False, indent=2), encoding="utf-8")
+    return result
+
+
+@app.get("/api/exports")
+def list_exports() -> list[dict]:
+    return export_history
 
 
 @app.get("/api/exports/{export_id}/download")
