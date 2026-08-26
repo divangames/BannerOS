@@ -42,6 +42,7 @@ UPLOAD_ROOT = Path(__file__).resolve().parents[2] / ".banneros" / "uploads"
 EXPORT_ROOT = Path(__file__).resolve().parents[2] / ".banneros" / "exports"
 EXPORT_INDEX = EXPORT_ROOT / "index.json"
 WORKSPACE_FILE = Path(__file__).resolve().parents[2] / ".banneros" / "workspaces.json"
+WORKSPACE_ROOT = Path(__file__).resolve().parents[2] / ".banneros" / "workspaces"
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 
 EXPORT_ROOT.mkdir(parents=True, exist_ok=True)
@@ -92,11 +93,16 @@ def list_workspaces() -> list[dict[str, str]]:
 
 @app.post("/api/workspaces", status_code=201)
 def create_workspace(payload: WorkspaceCreate) -> dict[str, str]:
+    workspace_id = str(uuid4())
+    workspace_root = WORKSPACE_ROOT / workspace_id
+    for folder in ("assets", "exports", "metadata"):
+        (workspace_root / folder).mkdir(parents=True, exist_ok=True)
     workspace = {
-        "id": str(uuid4()),
+        "id": workspace_id,
         "name": payload.name.strip(),
         "profile": payload.profile,
         "createdAt": datetime.now(UTC).isoformat(),
+        "root": str(workspace_root),
     }
     workspaces.append(workspace)
     WORKSPACE_FILE.parent.mkdir(parents=True, exist_ok=True)
