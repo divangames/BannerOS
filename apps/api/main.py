@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+import json
 from pathlib import Path
 from uuid import uuid4
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -39,10 +40,16 @@ PROFILES = {
 workspaces: list[dict[str, str]] = []
 UPLOAD_ROOT = Path(__file__).resolve().parents[2] / ".banneros" / "uploads"
 EXPORT_ROOT = Path(__file__).resolve().parents[2] / ".banneros" / "exports"
+WORKSPACE_FILE = Path(__file__).resolve().parents[2] / ".banneros" / "workspaces.json"
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 
 EXPORT_ROOT.mkdir(parents=True, exist_ok=True)
 app.mount("/files", StaticFiles(directory=EXPORT_ROOT), name="files")
+
+try:
+    workspaces = json.loads(WORKSPACE_FILE.read_text(encoding="utf-8")) if WORKSPACE_FILE.exists() else []
+except (OSError, json.JSONDecodeError):
+    workspaces = []
 
 
 class WorkspaceCreate(BaseModel):
@@ -87,6 +94,8 @@ def create_workspace(payload: WorkspaceCreate) -> dict[str, str]:
         "createdAt": datetime.now(UTC).isoformat(),
     }
     workspaces.append(workspace)
+    WORKSPACE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    WORKSPACE_FILE.write_text(json.dumps(workspaces, ensure_ascii=False, indent=2), encoding="utf-8")
     return workspace
 
 
