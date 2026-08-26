@@ -92,6 +92,16 @@ def list_workspaces() -> list[dict[str, str]]:
     return workspaces
 
 
+@app.get("/api/workspaces/{workspace_id}")
+def get_workspace(workspace_id: str) -> dict:
+    workspace = next((item for item in workspaces if item.get("id") == workspace_id), None)
+    if workspace is None:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    asset_root = WORKSPACE_ROOT / workspace_id / "assets"
+    export_count = sum(1 for item in export_history if item.get("workspaceId") == workspace_id)
+    return {**workspace, "assetCount": len(list(asset_root.iterdir())) if asset_root.is_dir() else 0, "exportCount": export_count}
+
+
 @app.post("/api/workspaces", status_code=201)
 def create_workspace(payload: WorkspaceCreate) -> dict[str, str]:
     workspace_id = str(uuid4())
